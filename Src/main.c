@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "mealy.h"
+#include "moore.h"
 
 /* USER CODE END Includes */
 
@@ -97,6 +98,10 @@ int main(void)
 #ifdef MEALY_MACHINE
   mealy_run_example();
 #endif /* MEALY_MACHINE */
+
+#ifdef MOORE_MACHINE
+  moore_run_example();
+#endif /* MOORE_MACHINE */
 
   /* USER CODE END 2 */
 
