@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "*.dsl": "c4",
+        "pro_timer.h": "c",
+        "stdint.h": "c",
+        "lcd.h": "c",
+        "stdlib.h": "c"
+    }
+}

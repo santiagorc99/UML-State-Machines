@@ -21,6 +21,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "protimer.h"
+#include "lcd.h"
+
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -31,10 +35,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-int _write(int file, char *ptr, int len) {
-  HAL_UART_Transmit(&huart1, (uint8_t *) ptr, len, HAL_MAX_DELAY);
-  return len;
-}
 
 /* USER CODE END PD */
 
@@ -49,6 +49,7 @@ TIM_HandleTypeDef htim1;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+static protimer_t protimer;
 
 /* USER CODE END PV */
 
@@ -63,6 +64,10 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int _write(int file, char *ptr, int len) {
+  HAL_UART_Transmit(&huart1, (uint8_t *) ptr, len, HAL_MAX_DELAY);
+  return len;
+}
 
 /* USER CODE END 0 */
 
@@ -97,8 +102,14 @@ int main(void)
   MX_TIM1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
+  protimer_init(&protimer);
 
-  HAL_UART_Transmit(&huart1, "Hello world!\r\n", strlen("Hello world!\r\n"), 100);
+  protimer_event_t protimer_event;
+
+  display_clear();
+  display_time(123);
+  display_message("SET TIME");
+
 
   /* USER CODE END 2 */
 
@@ -106,6 +117,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+//    protimer_event_dispatcher(&protimer, &protimer_event);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
