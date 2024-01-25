@@ -1,11 +1,14 @@
 #include "protimer.h"
 
 #include "lcd.h"
+#include "main.h"
 
 /** Helper functions.... Just to avoid some compilation errors */
 void do_beep(void) 
 {
-
+    HAL_GPIO_WritePin(USER_LED1_GPIO_Port, USER_LED1_Pin, GPIO_PIN_SET);
+    HAL_Delay(100);
+    HAL_GPIO_WritePin(USER_LED1_GPIO_Port, USER_LED1_Pin, GPIO_PIN_RESET);
 }
 
 /** Handle an event when the status is IDLE */
@@ -17,11 +20,13 @@ static protimer_event_status_t pro_timer_idle_state_handler(protimer_t *const mo
             mobj->elapsed_time = 0;
             display_time(0);
             display_message("Set Time");
+            display_show();
             return PROTIMER_EVENT_HANDLED;
         }
 
         case PROTIM_SIG_EXIT: {
             display_clear();
+            display_show();
             return PROTIMER_EVENT_HANDLED;
         }
 
@@ -40,8 +45,13 @@ static protimer_event_status_t pro_timer_idle_state_handler(protimer_t *const mo
          *      get the parameters of the event.
         */
         case PROTIM_SIG_TIME_TICK: {
-            if (((protimer_tick_event_t *)e)->ss == 5) {
-                do_beep();
+            static uint8_t tick_count = 0;
+            static uint8_t total_beeps = 0;
+            if (++tick_count == 5) {
+                tick_count = 0;
+                if (++total_beeps <= 20) {
+                    do_beep();
+                }
                 return PROTIMER_EVENT_HANDLED;
             }
             return PROTIMER_EVENT_IGNORED;
@@ -57,18 +67,22 @@ static protimer_event_status_t pro_timer_time_set_state_handler(protimer_t *cons
 {
     switch (e->signal) {
         case PROTIM_SIG_ENTRY: {
+            display_message("Set Time");
             display_time(mobj->current_time);
+            display_show();
             return PROTIMER_EVENT_HANDLED;
         }
 
         case PROTIM_SIG_EXIT: {
             display_clear();
+            display_show();
             return PROTIMER_EVENT_HANDLED;
         }
 
         case PROTIM_SIG_INC_TIME: {
             mobj->current_time += 60;
             display_time(mobj->current_time);
+            display_show();
             return PROTIMER_EVENT_HANDLED;
         }
 
@@ -76,6 +90,7 @@ static protimer_event_status_t pro_timer_time_set_state_handler(protimer_t *cons
             if (mobj->current_time >= 60) {
                 mobj->current_time -= 60;
                 display_time(mobj->current_time);
+                display_show();
                 return PROTIMER_EVENT_HANDLED;
             }
             return PROTIMER_EVENT_IGNORED;
@@ -105,16 +120,20 @@ static protimer_event_status_t pro_timer_stats_state_handler(protimer_t *const m
         case PROTIM_SIG_ENTRY: {
             display_time(mobj->worked_time);
             display_message("Worked Time");
+            display_show();
             return PROTIMER_EVENT_HANDLED;
         }
 
         case PROTIM_SIG_EXIT: {
             display_clear();
+            display_show();
             return PROTIMER_EVENT_HANDLED;
         }
 
         case PROTIM_SIG_TIME_TICK: {
-            if (((protimer_tick_event_t *)e)->ss == 10) {
+            static uint8_t tick_count = 0;
+            if (++tick_count == 30) {
+                tick_count = 0;
                 mobj->active_state = PROTIM_ST_IDLE;
                 return PROTIMER_EVENT_TRANSITION;
             }
@@ -131,17 +150,21 @@ static protimer_event_status_t pro_timer_pause_state_handler(protimer_t *const m
     switch (e->signal) {
         case PROTIM_SIG_ENTRY: {
             display_message("Paused");
+            display_time(mobj->current_time);
+            display_show();
             return PROTIMER_EVENT_HANDLED;
         }
 
         case PROTIM_SIG_EXIT: {
             display_clear();
+            display_show();
             return PROTIMER_EVENT_HANDLED;
         }
 
         case PROTIM_SIG_INC_TIME: {
             mobj->current_time += 60;
             display_time(mobj->current_time);
+            display_show();
             mobj->active_state = PROTIM_ST_TIME_SET;
             return PROTIMER_EVENT_TRANSITION;
         }
@@ -150,6 +173,7 @@ static protimer_event_status_t pro_timer_pause_state_handler(protimer_t *const m
             if (mobj->current_time >= 60) {
                 mobj->current_time -= 60;
                 display_time(mobj->current_time);
+                display_show();
                 mobj->active_state = PROTIM_ST_TIME_SET;
                 return PROTIMER_EVENT_HANDLED;
             }
@@ -163,7 +187,7 @@ static protimer_event_status_t pro_timer_pause_state_handler(protimer_t *const m
 
         case PROTIM_SIG_START_PAUSE: {
             mobj->active_state = PROTIM_ST_COUNTDOWN;
-            return PROTIMER_EVENT_IGNORED;
+            return PROTIMER_EVENT_TRANSITION;
         }
 
         default:
@@ -177,6 +201,8 @@ static protimer_event_status_t pro_timer_countdown_state_handler(protimer_t *con
         case PROTIM_SIG_EXIT: {
             mobj->worked_time += mobj->elapsed_time;
             mobj->elapsed_time = 0;
+            display_clear();
+            display_show();
             return PROTIMER_EVENT_HANDLED;
         }
 
@@ -187,14 +213,17 @@ static protimer_event_status_t pro_timer_countdown_state_handler(protimer_t *con
 
         case PROTIM_SIG_START_PAUSE: {
             mobj->active_state = PROTIM_ST_PAUSE;
-            return PROTIMER_EVENT_IGNORED;
+            return PROTIMER_EVENT_TRANSITION;
         }
 
         case PROTIM_SIG_TIME_TICK: {
-            if (((protimer_tick_event_t *)e)->ss == 10) {
+            static uint8_t tick_count = 0;
+            if (++tick_count == 10) {
+                tick_count = 0;
                 mobj->current_time--;
                 mobj->elapsed_time++;
                 display_time(mobj->current_time);
+                display_show();
 
                 if (mobj->current_time == 0) {
                     mobj->active_state = PROTIM_ST_IDLE;
@@ -262,7 +291,7 @@ void protimer_event_dispatcher(protimer_t *const mobj, protimer_event_t *const e
         mobj->active_state = source_state;
         protimer_state_machine(mobj, &ee);
 
-        ee.signal = PROTIM_SIG_EXIT;
+        ee.signal = PROTIM_SIG_ENTRY;
         mobj->active_state = target_state;
         protimer_state_machine(mobj, &ee);
     }
@@ -273,7 +302,10 @@ void protimer_init(protimer_t *const mobj)
 {
     /** Execute the initial action */
     mobj->worked_time = 0;
-
     /** The initial state */
     mobj->active_state = PROTIM_ST_IDLE;
+
+    /** Execute entry action */
+    protimer_event_t ee = {.signal = PROTIM_SIG_ENTRY};
+    protimer_state_machine(mobj, &ee);
 }

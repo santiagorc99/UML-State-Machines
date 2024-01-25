@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "protimer.h"
 #include "lcd.h"
+#include "button.h"
 
 #include <stdio.h>
 
@@ -69,6 +70,32 @@ int _write(int file, char *ptr, int len) {
   return len;
 }
 
+void user_event_producer(void)
+{
+  button_id_t button_pressed = button_get_pressed();
+
+  protimer_user_event_t ue;
+
+  if      (button_pressed == BUTTON_ID_PLUS)  { ue.super.signal = PROTIM_SIG_INC_TIME;}
+  else if (button_pressed == BUTTON_ID_MINUS) { ue.super.signal = PROTIM_SIG_DEC_TIME;}
+  else if (button_pressed == BUTTON_ID_BOTH)  { ue.super.signal = PROTIM_SIG_ABORT;}
+  else if (button_pressed == BUTTON_ID_START_PAUSE) { ue.super.signal = PROTIM_SIG_START_PAUSE;}
+  else    { return; }
+
+  protimer_event_dispatcher(&protimer, &ue.super);
+}
+
+void time_tick_event_producer(void)
+{
+    static protimer_tick_event_t te = {.super.signal = PROTIM_SIG_TIME_TICK, .ss = 0};
+    static uint32_t current_tick = 100;
+    if (HAL_GetTick() > current_tick) {
+      current_tick = HAL_GetTick() + 100;
+      if (++te.ss > 10) {te.ss = 1;}
+      protimer_event_dispatcher(&protimer, &te.super);
+    }
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -102,14 +129,9 @@ int main(void)
   MX_TIM1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
+  display_init();
+
   protimer_init(&protimer);
-
-  protimer_event_t protimer_event;
-
-  display_clear();
-  display_time(123);
-  display_message("SET TIME");
-
 
   /* USER CODE END 2 */
 
@@ -117,7 +139,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-//    protimer_event_dispatcher(&protimer, &protimer_event);
+    /** This is done here in polling, but can actually be moved to ISRs */
+    user_event_producer();
+    time_tick_event_producer();
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
