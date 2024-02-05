@@ -18,15 +18,13 @@ typedef enum protimer_signals_ {
 
 } protimer_signals_t;
 
-/** States of the application */
-typedef enum protimer_states_ {
-    PROTIM_ST_IDLE = 0x00,    
-    PROTIM_ST_TIME_SET,
-    PROTIM_ST_COUNTDOWN,
-    PROTIM_ST_PAUSE,
-    PROTIM_ST_STATS,
+/** Define the possible results of processing an event */
+typedef enum protimer_event_status_ {
+    PROTIMER_EVENT_HANDLED = 0x00,
+    PROTIMER_EVENT_IGNORED,
+    PROTIMER_EVENT_TRANSITION,
 
-} protimer_states_t;
+} protimer_event_status_t;
 
 /** Generic (super) event structure */
 typedef struct protimer_event_ {
@@ -47,13 +45,22 @@ typedef struct protimer_tick_event_ {
 
 } protimer_tick_event_t;
 
-/** Define the possible results of processing an event */
-typedef enum protimer_event_status_ {
-    PROTIMER_EVENT_HANDLED = 0x00,
-    PROTIMER_EVENT_IGNORED,
-    PROTIMER_EVENT_TRANSITION,
+#if USE_NESTED_SWITCH_APPROACH
+/** States of the application */
+typedef enum protimer_states_ {
+    PROTIM_ST_IDLE = 0x00,
+    PROTIM_ST_TIME_SET,
+    PROTIM_ST_COUNTDOWN,
+    PROTIM_ST_PAUSE,
+    PROTIM_ST_STATS,
 
-} protimer_event_status_t;
+} protimer_states_t;
+#elif USE_STATE_HANDLER_APPROACH
+/** Forward declaration of the protimer_t class */
+typedef struct protimer_ protimer_t;
+
+typedef protimer_event_status_t (*protimer_states_t)(protimer_t *const, protimer_event_t *const);
+#endif /* USE_NESTED_SWITCH_APPROACH */
 
 /** Main application structure */
 typedef struct protimer_ {
