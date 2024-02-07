@@ -80,7 +80,9 @@ typedef struct protimer_ {
 
     protimer_states_t active_state;
 
+#if USE_STATE_TABLE_APPROACH
     event_handler_t *state_table;
+#endif /* USE_STATE_TABLE_APPROACH */
 
 } protimer_t;
 
