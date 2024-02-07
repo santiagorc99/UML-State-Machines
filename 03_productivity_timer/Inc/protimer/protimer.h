@@ -16,6 +16,8 @@ typedef enum protimer_signals_ {
     PROTIM_SIG_ENTRY,
     PROTIM_SIG_EXIT,
 
+    PROTIM_SIG_TOTAL,
+
 } protimer_signals_t;
 
 /** Define the possible results of processing an event */
@@ -45,7 +47,7 @@ typedef struct protimer_tick_event_ {
 
 } protimer_tick_event_t;
 
-#if USE_NESTED_SWITCH_APPROACH
+#if USE_NESTED_SWITCH_APPROACH || USE_STATE_TABLE_APPROACH
 /** States of the application */
 typedef enum protimer_states_ {
     PROTIM_ST_IDLE = 0x00,
@@ -54,13 +56,21 @@ typedef enum protimer_states_ {
     PROTIM_ST_PAUSE,
     PROTIM_ST_STATS,
 
+    PROTIM_ST_TOTAL,
+
 } protimer_states_t;
+
 #elif USE_STATE_HANDLER_APPROACH
 /** Forward declaration of the protimer_t class */
 typedef struct protimer_ protimer_t;
 
 typedef protimer_event_status_t (*protimer_states_t)(protimer_t *const, protimer_event_t *const);
-#endif /* USE_NESTED_SWITCH_APPROACH */
+#endif
+
+#if USE_STATE_TABLE_APPROACH
+typedef struct protimer_ protimer_t;
+typedef protimer_event_status_t (*event_handler_t)(protimer_t *const, protimer_event_t *const);
+#endif /* USE_STATE_TABLE_APPROACH */
 
 /** Main application structure */
 typedef struct protimer_ {
@@ -69,6 +79,8 @@ typedef struct protimer_ {
     uint32_t worked_time;
 
     protimer_states_t active_state;
+
+    event_handler_t *state_table;
 
 } protimer_t;
 
